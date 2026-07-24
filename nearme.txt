@@ -1,0 +1,416 @@
+NearMe Africa — Landing Page & Platform Spec Page 1
+NearMe Africa
+Landing Page & Core Platform Specification
+Engineering & Product Reference Document
+Product NearMe Africa (Tiba Health Tech portfolio)
+Document type Landing page + platform functional specification
+Audience Engineering team, Product Manager
+Prepared by John, Tiba Health Tech
+Status Draft v1.0 — for engineering scoping
+Related systems Duukaz (storefront engine), Tangaza (ad platform), Tiba Wallet (payments)
+This document translates the NearMe Africa product concept into a build-ready spec: landing page
+structure, core features, data model, API surface, and monetization logic — benchmarked against
+comparable hyperlocal and super-app platforms across Southeast Asia, China, South Asia, North
+America, Europe, Latin America, and beyond.
+NearMe Africa — Landing Page & Platform Spec Page 2
+1. Purpose & Vision
+NearMe Africa is a hyperlocal discovery and commerce platform: businesses list what they sell or offer, and
+users nearby find them by geolocation. On top of discovery, a business gets a storefront (powered by Duukaz),
+a document toolkit (invoices, receipts, vouchers, flyers), a self-serve ad unit (Tangaza) priced as low as 1,000
+UGX per 1,000 impressions, and direct channels for messaging, ratings, and ordering.
+The landing page is the front door for two very different audiences at once: consumers searching for something
+nearby, and business owners deciding whether to list. The spec below treats the landing page as a dual-funnel
+surface and works backward from that into the underlying services engineering needs to build.
+Guiding principle: what can we ship that removes real friction between a local business and the customer
+standing three streets away from it, today — not a future roadmap item.
+2. Global Benchmark Scan
+Comparable hyperlocal / local-commerce models from other markets, and what NearMe Africa should
+deliberately borrow or avoid. Used to sanity-check scope, not to copy features blindly.
+Region / Platform Model Relevant to NearMe Africa
+Southeast Asia —
+Grab, Gojek
+Super-app born from one hyperlocal service
+(rides), then layered food, mapping, payments,
+and merchant tools on shared infra.
+Confirms the one-service-first playbook:
+geolocation discovery is the anchor;
+storefront, ads, and messaging are layered
+modules on shared login/wallet, not separate
+apps.
+China — Meituan,
+Dianping
+Local-life-services super-app: reviews drove
+discovery first, ordering and delivery came
+after trust was established.
+Ratings/reviews should launch alongside
+discovery, not as a v2 feature — trust signals
+are what convert a nearby listing into a visit
+or order.
+India — Justdial,
+Zomato, Swiggy
+Justdial built a local business directory
+reachable by phone and app long before
+smartphones were universal; Zomato/Swiggy
+layered ordering on top of discovery and
+reviews.
+Low-bandwidth/USSD-style fallback matters
+in secondary towns; discovery-to-order
+should be a short, linear funnel, not a maze
+of tabs.
+United States —
+Yelp, Nextdoor
+Yelp: search + reviews + paid placement.
+Nextdoor: address-verified neighborhood feed
+where residents ask for recommendations and
+businesses respond.
+Nextdoor's address-verification model is a
+strong pattern for trust in dense urban wards;
+Yelp's paid-placement-in-search-results is
+close to how Tangaza ad slots should sit
+inside NearMe search results.
+European Union —
+PagesJaunes (FR),
+Yelp/Google Maps
+EU
+Directory-to-marketplace transition; strong
+emphasis on structured business data (hours,
+categories, VAT/registration) for regulatory
+compliance.
+Business profile schema should capture
+registration/tax fields from day one —
+needed for invoice/receipt generation and
+cross-border (Uganda/Rwanda/South Sudan)
+compliance.
+Brazil — iFood Consolidated food/local commerce delivery
+leader; heavy investment in merchant-facing
+tools (menus, promotions, in-app credit)
+alongside consumer discovery.
+Merchant self-serve tooling (flyers, vouchers,
+promo codes) should be as polished as the
+consumer-facing discovery UI — merchants
+are the supply side that must be retained.
+Russia — Yandex
+(Maps, Business,
+Market)
+Unified maps + business listing + local search
+product, tightly integrated with navigation and
+local ads sold on a CPM/CPC auction.
+Ad auction/CPM logic (as opposed to flat
+listing fees) is the standard elsewhere;
+Tangaza's flat 1,000 UGX/1,000-impression
+floor should still support future auction-based
+pricing for premium slots.
+NearMe Africa — Landing Page & Platform Spec Page 3
+Region / Platform Model Relevant to NearMe Africa
+Japan — LINE,
+Tabelog
+LINE bundles messaging, payments, and
+official business accounts; Tabelog is a
+trusted, review-led restaurant discovery layer.
+Business messaging should feel like chat
+(LINE official accounts), not a ticketing inbox
+— this maps directly to the 'message a
+business' requirement.
+Canada & Australia
+— Google Business
+Profile, Yelp, local
+classifieds
+Mature markets rely on aggregator-owned
+business profiles rather than a dedicated
+hyperlocal app; local discovery is a feature of
+search engines and maps.
+Reinforces that NearMe Africa's edge is
+being the primary listing surface in markets
+where Google Business Profile coverage of
+SMEs is thin — this is the wedge, not a copy
+of Google.
+South Korea —
+Naver (Place, Map),
+Kakao (Map, Talk
+Channel)
+Naver Place blends search, reviews, and
+reservations; Kakao Talk Channel gives
+businesses a direct chat line to customers
+inside the country's dominant messenger.
+Booking/ordering and messaging should sit
+in the same screen flow as discovery —
+users should never have to leave the app to
+act on what they found.
+Vietnam — Grab,
+Gojek (GoViet
+legacy),
+Foody/ShopeeFood
+Fast-growing SEA hyperlocal delivery market
+with heavy incumbent competition;
+discovery-plus-delivery bundled from the
+outset.
+Confirms that in fast-growing, competitive
+markets, speed of merchant onboarding
+(self-serve listing creation) is the
+differentiator, not feature count.
+Takeaway for scope: (1) reviews/ratings ship with discovery, not after; (2) merchant self-serve tools (storefront,
+flyers, vouchers) need first-class polish; (3) messaging must feel like chat; (4) ad pricing starts flat-rate CPM but
+the data model should not block a future auction model.
+NearMe Africa — Landing Page & Platform Spec Page 4
+3. Core Feature Set
+3.1 Geolocation Discovery
+● Consumer opens app/web → prompted for location permission (GPS) or manual area/ward entry as fallback.
+● Businesses ranked by distance, category relevance, rating, and (if applicable) active Tangaza ad boost.
+● Category and keyword search layered on top of proximity (e.g. 'pharmacy', 'boda spare parts').
+● Radius control: default 5 km in urban wards, auto-expands in low-density areas until a minimum result count
+is met.
+3.2 Business Storefront (Duukaz-powered)
+● Each listed business gets a storefront page: catalog of products/services, prices, photos, hours, location pin.
+● Storefront inventory, pricing, and order management run on the existing Duukaz retail/SME engine —
+NearMe is the discovery and traffic layer in front of it, not a second inventory system.
+● Storefront supports both 'service' businesses (bookable, no fixed SKU) and 'product' businesses (fixed
+catalog, orderable).
+3.3 Business Documents
+● Invoice and receipt generation tied to storefront orders and offline transactions, branded with the business's
+own logo.
+● Voucher/coupon generator for promotions, redeemable in-store via code or QR scan.
+● Flyer generator: templated promotional graphics a business can post to their own social channels or push as
+a Tangaza ad creative directly.
+3.4 Tangaza Ad Platform
+● Self-serve ad creation from a business's storefront or flyer content — no separate design step required.
+● Pricing floor: 1,000 UGX per 1,000 impressions (CPM), with budget cap and daily spend limit set by the
+advertiser.
+● Ad placements: sponsored position in nearby-search results, category page banners, and (optionally) a
+native slot inside the ADT (Africa Daily Times) content feed for cross-portfolio reach.
+● Impression and click tracking per ad, feeding a merchant-facing performance dashboard (impressions,
+clicks, conversions to storefront visits/orders).
+3.5 Messaging, Ratings & Ordering
+● In-app chat thread between consumer and business, tied to a specific listing/storefront — not a generic
+inbox.
+● Star rating plus short review, gated to users who have messaged, ordered, or checked in at the business
+(reduces fake reviews).
+● Order flow for product businesses: cart → checkout → payment (Tiba Wallet / mobile money) → order status
+→ receipt.
+● Booking flow for service businesses: request → business confirms/proposes time → calendar hold →
+reminder.
+NearMe Africa — Landing Page & Platform Spec Page 5
+4. Landing Page Specification
+The public landing page (web + app home) serves two funnels at once: consumers who want to find something
+nearby right now, and business owners deciding whether to sign up. Sections below are ordered top-to-bottom
+as they should appear.
+Section Purpose Key components Data / API needed
+1. Hero +
+geolocation
+search bar
+Immediate value: 'find it
+near you' front and
+center.
+Location auto-detect with
+manual override, category
+quick-picks, search input with
+autocomplete.
+Geolocation API, category
+taxonomy service,
+search-suggest endpoint.
+2. Category grid Fast path into browse
+mode for users without a
+specific query.
+Icon grid: e.g. Health, Food,
+Retail, Auto, Home Services,
+Beauty, Professional Services.
+Category taxonomy +
+listing counts per category
+per locality.
+3. Nearby
+businesses
+carousel
+Show the geolocation
+engine working
+immediately, build trust.
+Card: photo, name, category,
+distance, rating, 'open now'
+badge.
+GET /businesses/nearby?l
+at&lng&radius&category
+endpoint.
+4. Sponsored /
+Tangaza slot
+Monetization surface,
+clearly labeled as an ad.
+1–3 rotating sponsored cards,
+'Sponsored' label, impression
+pixel on render.
+5. Storefront
+highlights
+Show what a full
+storefront looks like —
+pulls consumers deeper
+and shows prospective
+merchants the product.
+Featured storefront tiles with
+catalog preview (3–4 items),
+price range.
+Duukaz storefront
+summary endpoint.
+6. Ratings &
+social proof
+strip
+Trust layer before asking
+anyone to act.
+Aggregate stats (e.g.
+businesses listed, reviews
+collected) + 2–3 real short
+reviews.
+Platform stats endpoint,
+reviews sample endpoint.
+7. 'List your
+business' CTA
+block
+Business-owner funnel
+entry point.
+Short value pitch (list free, get
+discovered, sell, advertise from
+1,000 UGX/1,000 impressions),
+signup CTA.
+Business signup flow /
+onboarding wizard.
+8. How it works
+(3 steps, per
+audience)
+Reduce ambiguity for
+first-time users on both
+sides.
+Two tabs: 'I'm looking for
+something' vs 'I run a business'.
+Static content, no API
+dependency.
+9. Footer Trust, legal,
+cross-portfolio links.
+Links to Duukaz, Tangaza,
+ADT; country selector (Uganda /
+Rwanda / South Sudan);
+contact, terms, privacy.
+Country/locale config
+service.
+NearMe Africa — Landing Page & Platform Spec Page 6
+5. User Roles & Personas
+Role Primary goal Core actions
+Consumer Find and transact with a nearby
+business quickly.
+Search/browse, view storefront, message,
+rate, order/book, redeem vouchers.
+Business owner / manager Get discovered, sell, and grow visibility
+affordably.
+Create listing & storefront, manage catalog,
+issue invoices/receipts/vouchers/flyers, run
+Tangaza ads, respond to messages and
+reviews.
+Staff / field agent Manage day-to-day storefront
+operations on behalf of the owner.
+Fulfil orders, update inventory (via Duukaz),
+respond to chats.
+Platform admin (Tiba
+internal)
+Keep the marketplace trustworthy and
+monetized.
+Approve/verify listings, moderate reviews and
+ads, manage category taxonomy, monitor ad
+billing.
+6. Technical Architecture (high level)
+● Discovery service — geospatial index (e.g. PostGIS or equivalent) over business locations; proximity +
+category + rank query.
+● Storefront service — thin NearMe layer reading/writing to the existing Duukaz catalog/inventory/order APIs;
+no duplicate product data model.
+● Document service — templated PDF generation for invoices, receipts, vouchers, and flyers, branded per
+business.
+● Tangaza ad service — campaign creation, budget/pacing engine, impression & click event pipeline, billing
+integration with Tiba Wallet.
+● Messaging service — real-time chat (websocket or equivalent) scoped to consumer↔business per listing
+thread.
+● Ratings service — review submission gated by a verified interaction (order, booking, or message),
+aggregate score computation.
+● Order/booking service — cart/checkout for product businesses; request/confirm/calendar flow for service
+businesses; status webhooks back to messaging.
+● Identity & wallet — shared login and payments layer reused across Tiba's portfolio (Tiba Wallet), avoiding a
+parallel account system.
+Design constraint: NearMe Africa should not re-implement inventory, catalog, or payment logic that already
+exists in Duukaz and Tiba Wallet — it is the geolocation discovery, ads, and engagement layer sitting in front of
+those systems.
+NearMe Africa — Landing Page & Platform Spec Page 7
+7. Core Data Model (entities)
+Entity Key fields Notes
+Business id, name, category, geo-point, address,
+ward/locality, hours, verification status,
+tax/registration ref
+Links 1:1 to a Duukaz merchant
+record.
+Listing business_id, description, photos, tags, active flag What appears in discovery results.
+StorefrontItem business_id, name, price, type (product/service),
+stock/availability
+Mirrors Duukaz catalog; NearMe
+reads, does not own.
+AdCampaign business_id, budget, CPM rate, start/end,
+targeting radius, creative_ref
+Tangaza; creative can reuse a
+Flyer.
+Impression / Click campaign_id, timestamp, geo-bucket, surface
+(search/banner/ADT feed)
+Feeds billing and merchant
+dashboard.
+Order / Booking business_id, consumer_id, items/service, status,
+payment_ref
+Payment settled via Tiba Wallet.
+Message Thread business_id, consumer_id, listing_id, messages[] Scoped per listing, not a generic
+DM.
+Review business_id, consumer_id, rating, text,
+verified_interaction_ref
+Gated by prior
+order/booking/message.
+Document (Invoice/Receipt
+/Voucher/Flyer)
+business_id, type, order_ref (nullable),
+template_id, generated_file_ref
+Vouchers carry a redemption
+code/QR.
+8. Monetization Model
+● Tangaza CPM ads — floor rate 1,000 UGX per 1,000 impressions; budget cap and pacing prevent
+overspend.
+● Featured/boosted listing placement — flat fee or CPM-equivalent for a top-of-results position within a
+category or ward.
+● Storefront tier — free basic storefront; paid tier for extended catalog size, custom branding, or advanced
+document templates.
+● Transaction pass-through — optional small fee on in-app orders/bookings settled via Tiba Wallet (aligns
+with Duukaz's existing model).
+NearMe Africa — Landing Page & Platform Spec Page 8
+9. Non-Functional Requirements
+● Low-bandwidth resilience — landing page and discovery results must degrade gracefully on 2G/3G; image
+lazy-load and text-first fallback.
+● Multi-market config — country/locale switch for Uganda, Rwanda, South Sudan (currency, language, tax
+fields) without a separate codebase.
+● Offline-tolerant business tools — invoice/receipt/voucher generation should queue and sync when a
+business is briefly offline.
+● Geospatial performance — proximity queries must return in under ~300ms at expected listing density per
+city.
+● Trust & moderation — listing verification workflow and review gating to prevent fake businesses and fake
+reviews from the outset.
+● Data reuse — no duplicate source of truth for catalog (Duukaz) or payments (Tiba Wallet); NearMe
+consumes, does not fork, these.
+10. Success Metrics (initial)
+● Businesses listed per city/ward within 90 days of launch.
+● Search-to-storefront-view conversion rate.
+● Storefront-view-to-message-or-order conversion rate.
+● Tangaza campaigns created and average CPM spend per active advertiser.
+● Review submission rate per completed order/booking.
+11. Rollout Plan
+Phase Scope
+Phase 1 Geolocation discovery + basic listing + storefront read-through from Duukaz, in one city
+(Kampala).
+Phase 2 Messaging, ratings/reviews, Tangaza self-serve ad creation and billing.
+Phase 3 Documents suite (invoices, receipts, vouchers, flyers), order/booking flow, Tiba Wallet payment
+integration.
+Phase 4 Multi-country expansion (Rwanda, South Sudan), ADT feed ad placement, boosted-listing
+auction pricing.
+12. Open Questions for PM/Engineering Kickoff
+● Verification standard for a listed business — what documentation is required before a listing goes live?
+● Review gating threshold — should a single message qualify a user to review, or only a completed
+order/booking?
+● Ad inventory ownership — does Tangaza serve ads platform-wide (including ADT), or is NearMe search a
+separate inventory pool at launch?
+● Wallet settlement cadence for merchants — daily, weekly, or on-demand payout?
+Prepared for the NearMe Africa engineering team and product manager as a working spec — intended to be refined into
+tickets/epics per phase above.
