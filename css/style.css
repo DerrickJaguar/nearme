@@ -223,7 +223,7 @@ svg use { fill: none; }
 .chip svg { flex-shrink: 0; }
 .chip:hover, .chip.active { background: var(--orange-500); border-color: var(--orange-500); color: var(--purple-900); }
 
-.hero-stats { display: flex; gap: clamp(20px, 5vw, 40px); flex-wrap: wrap; }
+.hero-stats { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: clamp(20px, 5vw, 40px); }
 .hero-stats div { text-align: left; }
 .hero-stats strong { display: block; font-family: var(--font-head); font-size: clamp(1.1rem, 3vw, 1.3rem); color: var(--orange-500); letter-spacing: -0.01em; }
 .hero-stats span { font-size: 0.8rem; color: rgba(255,255,255,.7); }
@@ -574,6 +574,8 @@ svg use { fill: none; }
   .cta-band-actions .btn, .cta-band-actions a { width: 100%; }
   .cta-band-actions { flex-direction: column; align-items: stretch; }
   .biz-card { flex-basis: 240px; }
+  .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero-stats div:last-child { grid-column: 1 / -1; }
 }
 
 /* Phones: single-column everything, tighter type and spacing */
